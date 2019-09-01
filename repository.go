@@ -5,11 +5,11 @@ import (
 )
 
 type repository interface {
-	save(*secret) (id int, err error)
+	save(*Secret) (id int, err error)
 }
 
 type updater struct {
-	s *secret
+	s *Secret
 }
 
 func (u *updater) save() (id int, err error) {

@@ -10,6 +10,8 @@ import (
 	"github.com/joho/godotenv"
 )
 
+var store *Store
+
 func handleCommand(bot *tgbotapi.BotAPI, msg *tgbotapi.Message) string {
 	switch msg.Command() {
 	case "help":
@@ -61,6 +63,7 @@ func main() {
 		panic(err)
 	}
 
+	store = NewBoltDB()
 	// bot.Debug = true
 	log.Println("Authorized on account", bot.Self.UserName)
 

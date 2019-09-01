@@ -4,14 +4,14 @@ import (
 	"log"
 )
 
-type secret struct {
-	id      string
+type Secret struct {
+	id      uint64
 	userID  int
 	content string
 }
 
 func save(content string, userID int) (id int, err error) {
-	newSecret := &secret{
+	newSecret := &Secret{
 		userID:  userID,
 		content: content,
 	}
@@ -19,6 +19,7 @@ func save(content string, userID int) (id int, err error) {
 		s: newSecret,
 	}
 	r.save()
+	store.Put(newSecret)
 	log.Println("model save", content)
 	return userID, nil
 }
