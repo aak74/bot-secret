@@ -10,7 +10,29 @@ import (
 	"github.com/joho/godotenv"
 )
 
-func handler(bot *tgbotapi.BotAPI, msg *tgbotapi.Message) {
+func handleCommand(bot *tgbotapi.BotAPI, msg *tgbotapi.Message) string {
+	switch msg.Command() {
+	case "help":
+		return "type /add or /settings."
+	case "add":
+		log.Println("add", msg.CommandArguments())
+		secret := &Secret{
+			userId:  msg.From.ID,
+			content: msg.CommandArguments(),
+		}
+		id, err := secret.save()
+		if err != nil {
+			return "Error. Your content was not added"
+		}
+		return "Your content was added " + strconv.Itoa(id)
+	case "settings":
+		return "I know nothing about settings"
+	default:
+		return "I don't know that command"
+	}
+}
+
+func handleMessage(bot *tgbotapi.BotAPI, msg *tgbotapi.Message) {
 	log.Println("update", msg.From, msg.From.ID, msg.From.LastName)
 	if msg == nil { // ignore any non-Message Updates
 		return
@@ -20,31 +42,9 @@ func handler(bot *tgbotapi.BotAPI, msg *tgbotapi.Message) {
 		return
 	}
 
-	var text string
-	switch msg.Command() {
-	case "help":
-		text = "type /start or /settings."
-	case "start":
-		text = "Hi :)"
-	case "add":
-		log.Println("add", msg.CommandArguments())
-		secret := &Secret{
-			userId:  msg.From.ID,
-			content: msg.CommandArguments(),
-		}
-		id, err := secret.save()
-		if err != nil {
-			text = "Error. Your content was not added"
-			return
-		}
-		text = "Your content was added " + strconv.Itoa(id)
-	case "settings":
-		text = "I know nothing about settings"
-	default:
-		text = "I don't know that command"
-	}
-
-	newMsg := tgbotapi.NewMessage(msg.Chat.ID, text)
+	newMsg := tgbotapi.NewMessage(
+		msg.Chat.ID,
+		handleCommand(bot, msg))
 	if _, err := bot.Send(newMsg); err != nil {
 		panic(err)
 	}
@@ -79,6 +79,6 @@ func main() {
 	log.Println("start listen", port)
 
 	for update := range updates {
-		go handler(bot, update.Message)
+		go handleMessage(bot, update.Message)
 	}
 }
