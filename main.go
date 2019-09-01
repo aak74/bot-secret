@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -10,6 +9,46 @@ import (
 	"github.com/go-telegram-bot-api/telegram-bot-api"
 	"github.com/joho/godotenv"
 )
+
+func handler(bot *tgbotapi.BotAPI, msg *tgbotapi.Message) {
+	log.Println("update", msg.From, msg.From.ID, msg.From.LastName)
+	if msg == nil { // ignore any non-Message Updates
+		return
+	}
+
+	if !msg.IsCommand() { // ignore any non-command Messages
+		return
+	}
+
+	var text string
+	switch msg.Command() {
+	case "help":
+		text = "type /start or /settings."
+	case "start":
+		text = "Hi :)"
+	case "add":
+		log.Println("add", msg.CommandArguments())
+		secret := &Secret{
+			userId:  msg.From.ID,
+			content: msg.CommandArguments(),
+		}
+		id, err := secret.save()
+		if err != nil {
+			text = "Error. Your content was not added"
+			return
+		}
+		text = "Your content was added " + strconv.Itoa(id)
+	case "settings":
+		text = "I know nothing about settings"
+	default:
+		text = "I don't know that command"
+	}
+
+	newMsg := tgbotapi.NewMessage(msg.Chat.ID, text)
+	if _, err := bot.Send(newMsg); err != nil {
+		panic(err)
+	}
+}
 
 func main() {
 	err := godotenv.Load()
@@ -27,7 +66,7 @@ func main() {
 	}
 
 	// bot.Debug = true
-	fmt.Printf("Authorized on account %s\n", bot.Self.UserName)
+	log.Println("Authorized on account", bot.Self.UserName)
 
 	_, err = bot.SetWebhook(tgbotapi.NewWebhook(webhookURL))
 	if err != nil {
@@ -37,56 +76,9 @@ func main() {
 	updates := bot.ListenForWebhook("/")
 
 	go http.ListenAndServe(port, nil)
-	fmt.Println("start listen :", port)
+	log.Println("start listen", port)
 
-	// u := tgbotapi.NewUpdate(0)
-	// u.Timeout = 60
-
-	// updates, err := bot.GetUpdatesChan(u)
-
-	// получаем все обновления из канала updates
 	for update := range updates {
-		fmt.Println("update", update.Message.From, update.Message.From.ID, update.Message.From.LastName)
-		if update.Message == nil { // ignore any non-Message Updates
-			continue
-		}
-
-		if !update.Message.IsCommand() { // ignore any non-command Messages
-			continue
-		}
-
-		// Create a new MessageConfig. We don't have text yet,
-		// so we should leave it empty.
-		msg := tgbotapi.NewMessage(update.Message.Chat.ID, "")
-
-		// Extract the command from the Message.
-		switch update.Message.Command() {
-		case "help":
-			msg.Text = "type /start or /settings."
-		case "start":
-			msg.Text = "Hi :)"
-		case "add":
-			fmt.Println("add", update.Message.CommandArguments())
-			secret := &Secret{
-				userId:  update.Message.From.ID,
-				content: update.Message.CommandArguments(),
-			}
-			id, err := secret.save()
-			if err != nil {
-				msg.Text = "Error. Your content was not added"
-				continue
-			}
-			msg.Text = "Your content was added " + strconv.Itoa(id)
-		case "settings":
-			msg.Text = "I know nothing about settings"
-		default:
-			msg.Text = "I don't know that command"
-		}
-		// msg := tgbotapi.NewMessage(update.Message.Chat.ID, update.Message.Text)
-		// msg.ReplyToMessageID = update.Message.MessageID
-
-		if _, err := bot.Send(msg); err != nil {
-			panic(err)
-		}
+		go handler(bot, update.Message)
 	}
 }
