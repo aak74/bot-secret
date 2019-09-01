@@ -15,12 +15,8 @@ func handleCommand(bot *tgbotapi.BotAPI, msg *tgbotapi.Message) string {
 	case "help":
 		return "type /add or /settings."
 	case "add":
-		log.Println("add", msg.CommandArguments())
-		secret := &Secret{
-			userId:  msg.From.ID,
-			content: msg.CommandArguments(),
-		}
-		id, err := secret.save()
+		log.Println("handleCommand add", msg.CommandArguments())
+		id, err := save(msg.CommandArguments(), msg.From.ID)
 		if err != nil {
 			return "Error. Your content was not added"
 		}

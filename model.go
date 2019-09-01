@@ -4,13 +4,21 @@ import (
 	"log"
 )
 
-type Secret struct {
+type secret struct {
 	id      string
-	userId  int
+	userID  int
 	content string
 }
 
-func (s *Secret) save() (id int, err error) {
-	log.Println("add", s.content)
-	return 1, nil
+func save(content string, userID int) (id int, err error) {
+	newSecret := &secret{
+		userID:  userID,
+		content: content,
+	}
+	r := &updater{
+		s: newSecret,
+	}
+	r.save()
+	log.Println("model save", content)
+	return userID, nil
 }
