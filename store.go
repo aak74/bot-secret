@@ -22,7 +22,31 @@ func NewBoltDB() *Store {
 	return &Store{db}
 }
 
-func (s Store) Put(secret *Secret) error {
+func (s Store) GetList(userID int) ([]string, error) {
+	s.db.View(func(tx *bolt.Tx) error {
+		// Assume bucket exists and has keys
+		b := tx.Bucket([]byte("secrets"))
+
+		// c := b.Cursor()
+
+		sec := &Secret{}
+		// for k, v := c.First(); k != nil; k, v = c.Next() {
+		// 	json.Unmarshal(v, &sec)
+		// 	fmt.Printf("key=%s, value=%v %v\n", k, sec, v)
+		// }
+
+		b.ForEach(func(k, v []byte) error {
+			json.Unmarshal(v, &sec)
+			fmt.Printf("key=%s, value=%v %v\n", k, sec, v)
+			return nil
+		})
+		return nil
+	})
+
+	return []string{"qaz", "123"}, nil
+}
+
+func (s Store) Add(secret *Secret) error {
 	log.Println("Put", secret)
 	return s.db.Update(func(tx *bolt.Tx) error {
 		b, err := tx.CreateBucketIfNotExists([]byte("secrets"))
@@ -30,7 +54,7 @@ func (s Store) Put(secret *Secret) error {
 			return fmt.Errorf("create bucket: %s", err)
 		}
 		// b := tx.Bucket([]byte("secrets"))
-		log.Println("bucket", b)
+		log.Println("bucket", b, secret)
 		id, _ := b.NextSequence()
 		secret.id = id
 
@@ -39,7 +63,7 @@ func (s Store) Put(secret *Secret) error {
 		if err != nil {
 			return err
 		}
-
+		log.Printf("put to bucket %v %v\n", secret, buf)
 		// Persist bytes to users bucket.
 		return b.Put(itob(secret.id), buf)
 	})

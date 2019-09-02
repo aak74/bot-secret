@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/go-telegram-bot-api/telegram-bot-api"
 	"github.com/joho/godotenv"
@@ -13,16 +14,22 @@ import (
 var store *Store
 
 func handleCommand(bot *tgbotapi.BotAPI, msg *tgbotapi.Message) string {
+	log.Println("handleCommand", msg.Command(), msg.CommandArguments())
 	switch msg.Command() {
 	case "help":
 		return "type /add or /settings."
 	case "add":
-		log.Println("handleCommand add", msg.CommandArguments())
-		id, err := save(msg.CommandArguments(), msg.From.ID)
+		id, err := save(msg)
 		if err != nil {
 			return "Error. Your content was not added"
 		}
 		return "Your content was added " + strconv.Itoa(id)
+	case "list":
+		res, err := list(msg)
+		if err != nil {
+			return "GetList error"
+		}
+		return "list " + strings.Join(res[:], ",")
 	case "settings":
 		return "I know nothing about settings"
 	default:
